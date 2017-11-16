@@ -19,6 +19,21 @@ fakeroot do_populate_patchtest_src() {
     echo "export LC_ALL=en_US.utf8" >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc
     echo "export LANG=en_US.utf8" >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc
 
+    # define patchtest runner, called from initscript
+    cat >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc << EOF
+pt() {
+    local REPO=$1
+    local TMPBUILD=$2
+    local MBOX=$3
+TMPBUILD="$(mktemp -d)"
+BRANCH="$(get-target-branch $REPO $MBOX | awk '{print $NF}')"
+cd $REPO
+source ./oe-init-build-env $TMPBUILD
+test-mboxes -a $BRANCH -r $REPO -s $SUITESTART -o $RESULTS $MBOX
+rm -rf $TMPBUILD
+}
+EOF
+
     # set path containing all patchtest and its scripts
     echo "export PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:/home/patchtest/share/patchtest:/home/patchtest/share/patchtest/scripts:$PATH\"" >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc
 

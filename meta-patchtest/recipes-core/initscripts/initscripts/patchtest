@@ -12,24 +12,6 @@
 #                    $base/results
 ### END INIT INFO
 
-# Function that generates the command to be executed by patchest-user:
-# - Include patchtest related scripts on PATH
-# - cd into LOCAL_REPO and prepare bitbake environment
-# - Execute patchtest through test-mboxes
-function patchtest_cmd() {
-    local REPO=$1
-    local TMPBUILD=$2
-    local MBOX=$3
-    cat << EOF
-TMPBUILD="$(mktemp -d)"
-BRANCH="$(get-target-branch $REPO $MBOX | awk '{print $NF}')"
-cd $REPO
-source ./oe-init-build-env $TMPBUILD
-test-mboxes -a $BRANCH -r $REPO -s $SUITESTART -o $RESULTS $MBOX
-rm -rf $TMPBUILD
-EOF
-}
-
 test "$VERBOSE" != no && echo "Executing patchtest..."
 
 # Set patchtest home path
@@ -64,7 +46,7 @@ if [ -d $REPO ]; then
 
     ( # lets test each mbox individually (and in its own build directory) in order to avoid contamination issues
       for MBOX in $MBOXES/*.mbox; do
-	  CMD="$(patchtest_cmd $LOCAL_REPO $TMPBUILD $MBOX)"
+	  CMD="pt $LOCAL_REPO $TMPBUILD $MBOX"
 	  su -l -c "$CMD" $USER
       done
     )
