@@ -25,6 +25,7 @@
 # default values
 verbose=''
 repodir=''
+mboxpath=''
 startdir=''
 assemblebranch=''
 startpoint='HEAD'
@@ -32,20 +33,24 @@ outputdir=''
 mergeall=''
 
 function usage() {
+    CMD="$(basename $0)"
     cat << EOF
-\$ $(basename $0) -r OPTIONS INPUT
+\$ $CMD -r OPTIONS INPUT
 
 where OPTIONS are
 
     -r <repodir>         : Repository
     -s <startdir>        : Start directory for test discovery
+    -m <mbox or mbox dir>: Filepath poiting to a single mbox or a directory
     -p <start point>     : Start point for assemble branch. Defaults to $startpoint
     -a <assemble branch> : Branch name to assemble patches (that can be merged), including results as git-notes
     -A                   : Merge the mboxes on <assemble branch> no matter if some tests have failed. By default merge is only
                            on mboxes that have passed all tests (skips are not considered)
     -o <outputdir>       : Folder to be used to output (patchtest) results and logs for each tested series.
 
-and INPUT can be a sigle mbox or directory containing multiple mboxes
+The paramter -m can either point to sigle mbox or directory containing multiple mboxes. Extra parameters for patchtest can be provided after double dashes:
+
+    $CMD -r /home/user/poky -s /home/user/patchtest-oe/tests patch.mbox -- --pattern test_mbox_merge.py
 
 EOF
 >&2
@@ -59,6 +64,7 @@ function gitnotes() {
 
 function testpatch() {
     local patch="$1"
+    local extraptargs="$2"
 
     # get current branch
     CURRENTB="$(cd $repodir; git rev-parse --abbrev-ref HEAD)"
@@ -79,7 +85,7 @@ function testpatch() {
     patchfn=$(basename $patch)
 
     # run patchtest
-    PTRESULTS="$(patchtest $patch $repodir $startdir --json 2>$tmp)"
+    PTRESULTS="$(patchtest $patch $repodir $startdir $extraptargs --json 2>$tmp)"
 
     # store stdout/stderr and return if there was an error on pt execution
     if [ $? -ne 0 ]; then
@@ -137,13 +143,16 @@ function testpatch() {
     echo -e ""
 }
 
-while getopts ":r:s:p:a:o:vAh" opt; do
+while getopts ":r:s:m:p:a:o:vAh" opt; do
     case $opt in
 	r)
 	    repodir=$OPTARG
 	    ;;
 	s)
 	    startdir=$OPTARG
+	    ;;
+	m)
+	    mboxpath=$OPTARG
 	    ;;
 	p)
 	    startpoint=$OPTARG
@@ -171,26 +180,33 @@ while getopts ":r:s:p:a:o:vAh" opt; do
 	    echo "Option -$OPTARG requires an argument." >&2
 	    usage
 	    ;;
+	--)
+	    shift
+	    break
+	    ;;
+
     esac
 done
 shift $((OPTIND-1))
 
+extraopts="$@"
+
 # Checks
-test -z "$@" && { echo -e "Provide at least a patch or a patch directory"; usage; }
 test -z "$repodir"  && { echo "Indicate the repository"; usage; }
 test ! -d $repodir  && { echo "Repository does not exit"; usage; }
+test -z "$mboxpath" && { echo "Provide either an mbox for a directory containing mboxes"; usage; }
 test ! -d $startdir && { echo "Test suite starting directory does not exist"; usage; }
 
 # if outputdir does not exit, create it
 test -n "$outputdir" && { test ! -d "$outputdir" && { mkdir -p "$outputdir"; }; }
 
-for item in "$@"; do
+for item in "$mboxpath"; do
     # if item is a directory, get all files and test each
     if [ -d $item ]; then
 	for patch in $(find $item -type f -print0 | xargs -r0 stat -c %y\ %n | sort | cut -d' ' -f4); do
-	    testpatch $patch
+	    testpatch $patch "$extraopts"
 	done
     else
-	testpatch $item
+	testpatch $item "$extraopts"
     fi
 done
