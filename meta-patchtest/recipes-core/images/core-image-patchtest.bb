@@ -32,7 +32,7 @@ cd \$REPO
 source ./oe-init-build-env \$TMPBUILD
 test-mboxes -r \$REPO -s \$SUITESTART -m \$MBOX -o \$RESULTS -- -b \$BRANCH
 rm -rf \$TMPBUILD
-}
+ }
 EOF
 
     # set path containing all patchtest and its scripts
