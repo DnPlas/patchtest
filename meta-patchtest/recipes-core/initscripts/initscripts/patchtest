@@ -17,14 +17,16 @@
 # - cd into LOCAL_REPO and prepare bitbake environment
 # - Execute patchtest through test-mboxes
 function patchtest_cmd() {
-    local TMPBUILD=$1
-    local MBOX=$2
+    local REPO=$1
+    local TMPBUILD=$2
+    local MBOX=$3
     cat << EOF
-export PATH="$PW/git-pw/:$PT:$PT/scripts:$PATH" &&
-cd $LOCAL_REPO &&
-source ./oe-init-build-env $TMPBUILD &&
-BRANCH="$(get-target-branch $LOCAL_REPO $MBOX | awk '{print $NF}')" &&
-test-mboxes -a $BRANCH -r $LOCAL_REPO -s $SUITESTART -o $RESULTS $MBOX
+TMPBUILD="$(mktemp -d)"
+BRANCH="$(get-target-branch $REPO $MBOX | awk '{print $NF}')"
+cd $REPO
+source ./oe-init-build-env $TMPBUILD
+test-mboxes -a $BRANCH -r $REPO -s $SUITESTART -o $RESULTS $MBOX
+rm -rf $TMPBUILD
 EOF
 }
 
@@ -32,7 +34,7 @@ test "$VERBOSE" != no && echo "Executing patchtest..."
 
 # Set patchtest home path
 PAT_USER="patchtest"
-HOME_USER="$(cut -f6 /etc/passwd -d':' | grep $PAT_USER)"
+HOME_USER="/home/patchtest"
 
 # MP is the share directory between host and guest
 MP="$HOME_USER/share"
@@ -43,8 +45,6 @@ mount -t 9p -o trans=virtio test_mount "$MP" -oversion=9p2000.L,posixacl,cache=l
 # Define directory pathnames base on MP
 MBOXES="$MP/mboxes"
 RESULTS="$HOME_USER/results"
-PW="$MP/patchwork"
-PT="$MP/patchtest"
 REPO="$MP/openembedded-core"
 SUITESTART="$MP/patchtest-oe/tests"
 
@@ -62,25 +62,9 @@ if [ -d $REPO ]; then
     # Clean local repo
     ( cd $LOCAL_REPO; git reset --hard; git clean -fd; )
 
-    ( # Python requires UTF-8
-      export LC_ALL=en_US.UTF-8;
-      export LANG=en_US.UTF-8;
-      export LANGUAGE=en_US.UTF-8;
-
-      # configure git, required for patchtest
-      su -m --command "git config --global user.email patchtest@patchtest.com"
-      su -m --command "git config --global user.name  patchtest"
-
-      # lets test each mbox individually (and in its own build directory) in order to avoid contamination issues
+    ( # lets test each mbox individually (and in its own build directory) in order to avoid contamination issues
       for MBOX in $MBOXES/*.mbox; do
-	  # create temporal build folder
-	  TMPBUILD=$(su -m --command "mktemp -d" $PAT_USER)
-
-	  MBOXCMD=$(patchtest_cmd $TMPBUILD $MBOX)
-	  su -m --command "$MBOXCMD" $PAT_USER
-
-	  # to be safe, remove temporal build folder
-	  su -m --command "rm -rf $TMPBUILD" $PAT_USER
+	  su -l -c "$(patchtest_cmd $LOCAL_REPO $TMPBUILD $MBOX)" $PAT_USER
       done
     )
 fi

@@ -13,3 +13,21 @@ IMAGE_INSTALL = "\
     packagegroup-patchtest-oe \
     "
 inherit core-image
+
+fakeroot do_populate_patchtest_src() {
+    # set the correct LC_ALL, required for python3 based applications
+    echo "export LC_ALL=en_US.utf8" >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc
+
+    # set path containing all patchtest and its scripts
+    echo "export PATH=\"/home/patchtest/share/patchtest:/home/patchtest/share/patchtest/scripts:$PATH\"" >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc
+
+    # configure git, required for patchtest
+    cat >> ${IMAGE_ROOTFS}/home/patchtest/.gitconfig << EOF
+[user]
+    name = patchtest
+    email = patchtest@patchtest.com
+EOF
+
+}
+
+IMAGE_PREPROCESS_COMMAND += "do_populate_patchtest_src; "
