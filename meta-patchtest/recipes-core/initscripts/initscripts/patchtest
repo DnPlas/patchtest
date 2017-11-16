@@ -33,7 +33,7 @@ EOF
 test "$VERBOSE" != no && echo "Executing patchtest..."
 
 # Set patchtest home path
-PAT_USER="patchtest"
+USER="patchtest"
 HOME_USER="/home/patchtest"
 
 # MP is the share directory between host and guest
@@ -57,14 +57,15 @@ sysctl -w fs.file-max=100000
 if [ -d $REPO ]; then
     # Make a local copy of REPO inside patchtest home
     cp -a $REPO $HOME_USER
-    chown -R $PAT_USER $LOCAL_REPO
+    chown -R $USER $LOCAL_REPO
 
     # Clean local repo
     ( cd $LOCAL_REPO; git reset --hard; git clean -fd; )
 
     ( # lets test each mbox individually (and in its own build directory) in order to avoid contamination issues
       for MBOX in $MBOXES/*.mbox; do
-	  su -l -c "$(patchtest_cmd $LOCAL_REPO $TMPBUILD $MBOX)" $PAT_USER
+	  CMD="$(patchtest_cmd $LOCAL_REPO $TMPBUILD $MBOX)"
+	  su -l -c "$CMD" $USER
       done
     )
 fi
