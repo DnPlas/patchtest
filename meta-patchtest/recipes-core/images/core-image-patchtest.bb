@@ -44,4 +44,6 @@ EOF
     email = patchtest@patchtest.com
 EOF
 
+}
+
 IMAGE_PREPROCESS_COMMAND += "do_populate_patchtest_src; "
