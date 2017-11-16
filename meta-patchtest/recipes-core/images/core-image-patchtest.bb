@@ -21,7 +21,7 @@ fakeroot do_populate_patchtest_src() {
 
     # set path containing all patchtest and its scripts
     echo "export PATH=\"/home/patchtest/share/patchtest:/home/patchtest/share/patchtest/scripts:$PATH\"" >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc
-    ehco "export PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:$PATH\"" >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc
+    echo "export PATH=\"/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/sbin:/sbin:$PATH\"" >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc
 
     # configure git, required for patchtest
     cat >> ${IMAGE_ROOTFS}/home/patchtest/.gitconfig << EOF
