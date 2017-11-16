@@ -21,16 +21,17 @@ fakeroot do_populate_patchtest_src() {
 
     # define patchtest runner, called from initscript
     cat >> ${IMAGE_ROOTFS}/home/patchtest/.bashrc << EOF
-pt() {
-    local REPO=$1
-    local TMPBUILD=$2
-    local MBOX=$3
-TMPBUILD="$(mktemp -d)"
-BRANCH="$(get-target-branch $REPO $MBOX | awk '{print $NF}')"
-cd $REPO
-source ./oe-init-build-env $TMPBUILD
-test-mboxes -a $BRANCH -r $REPO -s $SUITESTART -o $RESULTS $MBOX
-rm -rf $TMPBUILD
+function pt() {
+    local REPO=\$1
+    local MBOX=\$2
+    local SUITESTART=\$3
+    local RESULTS=\$4
+TMPBUILD="\$(mktemp -d)"
+BRANCH="\$(get-target-branch \$REPO \$MBOX | awk '{print \$NF}')"
+cd \$REPO
+source ./oe-init-build-env \$TMPBUILD
+test-mboxes -a \$BRANCH -r \$REPO -s \$SUITESTART -o \$RESULTS \$MBOX
+rm -rf \$TMPBUILD
 }
 EOF
 

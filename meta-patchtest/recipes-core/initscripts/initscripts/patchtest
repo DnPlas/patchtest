@@ -46,7 +46,7 @@ if [ -d $REPO ]; then
 
     ( # lets test each mbox individually (and in its own build directory) in order to avoid contamination issues
       for MBOX in $MBOXES/*.mbox; do
-	  CMD="pt $LOCAL_REPO $TMPBUILD $MBOX"
+	  CMD="pt $LOCAL_REPO $MBOX $SUITESTART $RESULTS"
 	  su -l -c "$CMD" $USER
       done
     )
